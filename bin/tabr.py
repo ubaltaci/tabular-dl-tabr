@@ -322,14 +322,14 @@ def main(
 
     output = Path(output)
     report = lib.create_report(config)
-    C = lib.make_config(Config, config)
+    ConfigUser = lib.make_config(Config, config)
 
-    delu.random.seed(C.seed)
+    delu.random.seed(ConfigUser.seed)
     device = lib.get_device()
 
     # >>> data
     dataset = (
-        C.data if isinstance(C.data, lib.Dataset) else lib.build_dataset(**C.data)
+        ConfigUser.data if isinstance(ConfigUser.data, lib.Dataset) else lib.build_dataset(**ConfigUser.data)
     ).to_torch(device)
     if dataset.is_regression:
         dataset.data['Y'] = {k: v.float() for k, v in dataset.Y.items()}
@@ -343,7 +343,7 @@ def main(
         n_bin_features=dataset.n_bin_features,
         cat_cardinalities=dataset.cat_cardinalities(),
         n_classes=dataset.n_classes(),
-        **C.model,
+        **ConfigUser.model,
     )
     report['n_parameters'] = lib.get_n_parameters(model)
     logger.info(f'n_parameters = {report["n_parameters"]}')
@@ -368,7 +368,7 @@ def main(
         )
 
     optimizer = lib.make_optimizer(
-        model, **C.optimizer, zero_weight_decay_condition=zero_wd_condition
+        model, **ConfigUser.optimizer, zero_weight_decay_condition=zero_wd_condition
     )
     loss_fn = lib.get_loss_fn(dataset.task_type)
 
@@ -378,7 +378,7 @@ def main(
     epoch = 0
     eval_batch_size = 32768
     chunk_size = None
-    progress = delu.ProgressTracker(C.patience)
+    progress = delu.ProgressTracker(ConfigUser.patience)
     training_log = []
     writer = torch.utils.tensorboard.SummaryWriter(output)  # type: ignore[code]
 
@@ -418,7 +418,7 @@ def main(
             y=y if is_train else None,
             candidate_x_=candidate_x,
             candidate_y=candidate_y,
-            context_size=C.context_size,
+            context_size=ConfigUser.context_size,
             is_train=is_train,
         ).squeeze(-1)
 
@@ -476,23 +476,23 @@ def main(
 
     print()
     timer = lib.run_timer()
-    while epoch < C.n_epochs:
+    while epoch < ConfigUser.n_epochs:
         print(f'[...] {lib.try_get_relative_path(output)} | {timer}')
 
         model.train()
         epoch_losses = []
         for batch_idx in tqdm(
-            lib.make_random_batches(train_size, C.batch_size, device),
+            lib.make_random_batches(train_size, ConfigUser.batch_size, device),
             desc=f'Epoch {epoch}',
         ):
             loss, new_chunk_size = lib.train_step(
                 optimizer,
                 lambda idx: loss_fn(apply_model('train', idx, True), Y_train[idx]),
                 batch_idx,
-                chunk_size or C.batch_size,
+                chunk_size or ConfigUser.batch_size,
             )
             epoch_losses.append(loss.detach())
-            if new_chunk_size and new_chunk_size < (chunk_size or C.batch_size):
+            if new_chunk_size and new_chunk_size < (chunk_size or ConfigUser.batch_size):
                 chunk_size = new_chunk_size
                 logger.warning(f'chunk_size = {chunk_size}')
 

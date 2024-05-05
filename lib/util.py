@@ -164,8 +164,10 @@ def make_config(Config: Type[T], config: JSONDict) -> T:
                         )
                 else:
                     # in this case, we do nothing and hope for good luck
+                    print("skipped: " + field.name)
                     pass
 
+            print(data)
             return datacls(**data)
 
         the_config = _from_dict(Config, config)
