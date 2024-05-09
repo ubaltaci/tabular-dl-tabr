@@ -11,6 +11,7 @@ dependencies:
 - jupyterlab=3.6.1
 - loguru=0.6.0
 - numpy=1.24.2
+- optuna=3.1.0
 - pandas=1.5.3
 - pytorch::pytorch=1.13.1
 # - pytorch::pytorch-cuda=11.7
